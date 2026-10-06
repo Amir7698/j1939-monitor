@@ -8,17 +8,16 @@
 
 A **J1939 monitor for embedded Linux**, written in **C++11**.
 
-It reads CAN traffic from heavy-duty vehicles (trucks, tractors, agricultural machines) and turns raw frames into readable information:
+It reads CAN frames from heavy-duty vehicles (trucks, tractors, agricultural machines) and decodes the J1939 identifier. Current output of `./build/j1939-monitor` on a fake engine frame:
 
 ```text
-0CF00400  FF FF FF 40 1F FF FF FF
-    ↓
-[Engine, SA 0x00]  EEC1 (PGN 61444)  →  priority 3, broadcast
+Priority: 3
+SA:       0
 ```
 
 The goal is a small but **industrial-style** codebase: a reusable library, a hardware-independent design, unit tests, a containerized build and a CI pipeline on every push.
 
-> 🚧 **Work in progress.** See the [roadmap](#roadmap) for what is done and what comes next.
+> 🚧 **Work in progress.** Today it decodes the identifier fields; PGN/SPN decoding and a real SocketCAN source are next. See the [roadmap](#roadmap).
 
 ---
 
@@ -128,10 +127,10 @@ j1939-monitor/
 
 ## Engineering choices
 
-- **C++11 only**, as commonly required on embedded Linux targets. The unit-test executable uses C++14 only because GoogleTest ≥ 1.13 requires it; the library itself stays C++11.
+- **C++11 as the minimum standard**, so the library also builds with older embedded toolchains. The unit-test executable uses C++14 only because GoogleTest ≥ 1.13 requires it.
 - **Fixed-width types** (`uint8_t`, `uint32_t`) for all bus data: exact sizes, no sign issues in bit operations.
 - **Immutable value types**: `J1939Id` is set once in the constructor; all getters are `const`.
-- **RAII and `std::unique_ptr`** instead of manual `new` / `delete`; no dynamic allocation planned in the main loop.
+- **No dynamic allocation in the decoding path**: frames and identifiers are plain values. Heap ownership, where needed (for example the CAN source chosen at runtime), will use `std::unique_ptr`.
 - **Interfaces only where there are real alternatives** (fake vs. real CAN), not everywhere.
 - **Warnings on**: `-Wall -Wextra -Wpedantic`.
 
@@ -145,14 +144,9 @@ j1939-monitor/
 - [x] Dockerized build environment
 - [x] GitHub Actions CI
 - [x] `CanFrame`, `ICanSource` interface, `FakeCanSource`
-- [ ] PGN / SPN decoding: engine speed, coolant temperature, vehicle speed
-- [ ] `SocketCanSource` on Linux SocketCAN (`vcan0`), event loop with `epoll`
-- [ ] Python ECU simulator (`python-can`) and system tests with `pytest`
-- [ ] J1939 transport protocol (BAM) and DM1 diagnostic messages
-- [ ] ISO-TP (ISO 15765-2) and a minimal UDS (ISO 14229) client
-- [ ] Daemon mode with systemd and clean SIGTERM shutdown
-- [ ] ARM64 cross-compilation and release artifacts with checksums
-- [ ] Static analysis (clang-tidy, cppcheck), sanitizers and coverage in CI
+- [ ] PGN calculation (PDU1 / PDU2) and SPN decoding: engine speed, coolant temperature, vehicle speed, "not available" values
+- [ ] `SocketCanSource` on Linux SocketCAN (`vcan0`) with `epoll`, output comparable with `candump`
+- [ ] J1939 transport protocol (BAM reassembly with timeouts) and DM1 diagnostic messages
 
 ---
 
