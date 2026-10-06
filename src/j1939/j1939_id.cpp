@@ -13,7 +13,17 @@ J1939Id::J1939Id(uint32_t value) {
     raw_ = value;
 }
 
+uint32_t  J1939Id::priority() const {
+return (raw_ >> 26) & 0x7;
+}
 
-uint32_t J1939Id::priority() const {
-    return (raw_ >> 26) & 0x7;
+uint32_t J1939Id::pduFormat() const {
+return (raw_ >> 16) & 0xFF;
+}
+
+uint32_t J1939Id::sourceAddress() const {
+return raw_  & 0xFF;
+}
+uint32_t J1939Id::rawValue () const {
+return raw_;
 }

@@ -19,6 +19,9 @@ class J1939Id {
         J1939Id (uint32_t value);
 
         uint32_t priority() const;
+        uint32_t pduFormat() const;
+        uint32_t sourceAddress() const;
+        uint32_t rawValue() const;
 
     private:
         uint32_t raw_;
