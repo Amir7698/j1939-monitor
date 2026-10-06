@@ -1,0 +1,15 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t j1939-build docker/
+
+      - name: Build and run unit tests
+        run: docker run --rm -v "$PWD":/src j1939-build bash -c "cmake -S . -B build-docker -G Ninja && cmake --build build-docker && ./build-docker/unit_tests"
