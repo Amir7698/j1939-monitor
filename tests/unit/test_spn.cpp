@@ -33,3 +33,18 @@ TEST(SpnTest, EngineSpeed_NotAvailableRange)
     SpnValue speed = decodeEngineSpeed(frame);
     EXPECT_FALSE(speed.available);
 }
+
+TEST(SpnTest, CoolantTemp_90C)
+{
+    CanFrame frame = {0x18FEEE00, 8, {0X82, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
+    SpnValue temp = decodeCoolantTemp(frame);
+    EXPECT_TRUE(temp.available);
+    EXPECT_DOUBLE_EQ(temp.value, 90.0);
+}
+
+TEST(SpnTest, CoolantTemp_NotAvailable)
+{
+    CanFrame frame = {0x18FEEE00, 8, {0XFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
+    SpnValue temp= decodeCoolantTemp(frame);
+    EXPECT_FALSE(temp.available);
+}

@@ -12,5 +12,6 @@ struct SpnValue
 };
 
 SpnValue decodeEngineSpeed(CanFrame frame);
+SpnValue decodeCoolantTemp(CanFrame frame);
 
 #endif

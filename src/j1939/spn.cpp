@@ -15,3 +15,19 @@ SpnValue decodeEngineSpeed(CanFrame frame)
     result.value = raw * 0.125; // 0.125 rpm per bit
     return result;
 }
+
+SpnValue decodeCoolantTemp(CanFrame frame)
+{
+
+    SpnValue result;
+    uint32_t raw = frame.data[0];
+    if (raw >= 0xFF)
+    {
+        result.available = false;
+        result.value = 0;
+        return result;
+    }
+    result.available = true;
+    result.value = raw - 40.0;
+    return result;
+}
