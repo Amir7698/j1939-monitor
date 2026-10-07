@@ -8,7 +8,7 @@
 
 A **J1939 monitor for embedded Linux**, written in **C++11**.
 
-It reads CAN frames from heavy-duty vehicles (trucks, tractors, agricultural machines), decodes the J1939 identifier (priority, PGN, source and destination) and turns raw data bytes into physical values such as engine speed. Current output of `./build/j1939-monitor` on a fake engine frame:
+It reads CAN frames from heavy-duty vehicles (trucks, tractors, agricultural machines), decodes the J1939 identifier (priority, PGN, source and destination) and turns raw data bytes into physical values such as engine speed and coolant temperature. Current output of `./build/j1939-monitor` on a fake engine frame:
 
 ```text
 Priority: 3
@@ -17,7 +17,7 @@ SA:       0
 
 The goal is a small but **industrial-style** codebase: a reusable library, a hardware-independent design, unit tests, a containerized build and a CI pipeline on every push.
 
-> 🚧 **Work in progress.** The library decodes the identifier, the PGN and the engine speed SPN; more SPNs and a real SocketCAN source are next. See the [roadmap](#roadmap).
+> 🚧 **Work in progress.** The library decodes the identifier, the PGN, engine speed and coolant temperature; a real SocketCAN source is next. See the [roadmap](#roadmap).
 
 ### Library usage
 
@@ -35,6 +35,9 @@ id.destinationAddress();  // 0xFF   (PDU2: broadcast)
 SpnValue rpm = decodeEngineSpeed(frame);
 rpm.available;            // true
 rpm.value;                // 1000.0 rpm  (0x1F40 × 0.125)
+
+CanFrame et1 = {0x18FEEE00, 8, {0x82, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
+decodeCoolantTemp(et1).value;   // 90.0 °C  (130 − 40)
 ```
 
 Every value above is checked by a unit test.
@@ -45,7 +48,7 @@ Every value above is checked by a unit test.
 
 - **J1939 identifier decoding**: priority, PDU format, source address from the 29-bit CAN ID.
 - **PGN calculation** following the PDU1 / PDU2 rule (the PDU Specific byte is a destination address when PF < 240), including the data page bit, plus the destination address (`0xFF` for broadcasts).
-- **SPN decoding**: engine speed (SPN 190) from little-endian data bytes with 0.125 rpm/bit resolution. "Not available" values are reported as such, never converted into a fake number.
+- **SPN decoding**: engine speed (SPN 190, two little-endian bytes, 0.125 rpm/bit) and coolant temperature (SPN 110, one byte, 1 °C/bit, offset −40 °C). "Not available" values (`0xFF00`–`0xFFFF` for two bytes, `0xFF` for one byte) are reported as such, never converted into a fake number.
 - **Hardware-independent CAN input** through the `ICanSource` interface. The same decoding code runs on a fake source (unit tests, CI) and, later, on a real SocketCAN bus.
 - **Unit-tested** with GoogleTest.
 - **Reproducible build** in a Docker container, so the toolchain is identical on every machine.
@@ -79,7 +82,7 @@ flowchart TB
 | `ICanSource` | Interface: anything that can `read()` a `CanFrame`. |
 | `FakeCanSource` | Returns predefined frames, for tests and development. |
 | `J1939Id` | Immutable value class that decodes the fields of a J1939 identifier, the PGN and the destination. |
-| `SpnValue`, `decodeEngineSpeed()` | Decodes a physical value from the data bytes and says whether it is available. |
+| `SpnValue`, `decodeEngineSpeed()`, `decodeCoolantTemp()` | Decodes a physical value from the data bytes and says whether it is available. |
 
 ---
 
@@ -168,8 +171,9 @@ j1939-monitor/
 - [x] GitHub Actions CI
 - [x] `CanFrame`, `ICanSource` interface, `FakeCanSource`
 - [x] PGN calculation (PDU1 / PDU2, data page) and destination address
-- [x] Engine speed SPN (190) with "not available" handling
-- [ ] More SPNs (coolant temperature, vehicle speed) and the full J1939 "error" / "not available" ranges
+- [x] Engine speed SPN (190) with the full "not available" range (`0xFF00`–`0xFFFF`)
+- [x] Coolant temperature SPN (110) with resolution, offset and "not available"
+- [ ] Vehicle speed SPN and the J1939 "error indicator" ranges
 - [ ] `SocketCanSource` on Linux SocketCAN (`vcan0`) with `epoll`, output comparable with `candump`
 - [ ] J1939 transport protocol (BAM reassembly with timeouts) and DM1 diagnostic messages
 
