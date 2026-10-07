@@ -13,18 +13,23 @@
 #define J1939MON_J1939_J1939_ID_HPP
 #include <cstdint>
 
-class J1939Id {
+class J1939Id
+{
 
-    public:
-        J1939Id (uint32_t value);
+public:
+    J1939Id(uint32_t value);
 
-        uint32_t priority() const;
-        uint32_t pduFormat() const;
-        uint32_t sourceAddress() const;
-        uint32_t rawValue() const;
+    uint32_t priority() const;
+    uint32_t pduFormat() const;
+    uint32_t sourceAddress() const;
+    uint32_t pgn() const;
+    uint32_t destinationAddress() const;
+    bool isPdu1() const;
 
-    private:
-        uint32_t raw_;
+    uint32_t rawValue() const;
+
+private:
+    uint32_t raw_;
 };
 
 #endif
