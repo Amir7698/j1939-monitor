@@ -8,7 +8,7 @@
 
 A **J1939 monitor for embedded Linux**, written in **C++11**.
 
-It reads CAN frames from heavy-duty vehicles (trucks, tractors, agricultural machines) and decodes the J1939 identifier. Current output of `./build/j1939-monitor` on a fake engine frame:
+It reads CAN frames from heavy-duty vehicles (trucks, tractors, agricultural machines), decodes the J1939 identifier (priority, PGN, source and destination) and turns raw data bytes into physical values such as engine speed. Current output of `./build/j1939-monitor` on a fake engine frame:
 
 ```text
 Priority: 3
@@ -17,13 +17,35 @@ SA:       0
 
 The goal is a small but **industrial-style** codebase: a reusable library, a hardware-independent design, unit tests, a containerized build and a CI pipeline on every push.
 
-> 🚧 **Work in progress.** Today it decodes the identifier fields; PGN/SPN decoding and a real SocketCAN source are next. See the [roadmap](#roadmap).
+> 🚧 **Work in progress.** The library decodes the identifier, the PGN and the engine speed SPN; more SPNs and a real SocketCAN source are next. See the [roadmap](#roadmap).
+
+### Library usage
+
+```cpp
+#include "j1939mon/j1939/j1939_id.hpp"
+#include "j1939mon/j1939/spn.hpp"
+
+CanFrame frame = {0x0CF00400, 8, {0xFF, 0xFF, 0xFF, 0x40, 0x1F, 0xFF, 0xFF, 0xFF}};
+
+J1939Id id(frame.id);
+id.pgn();                 // 0xF004 (61444, EEC1)
+id.sourceAddress();       // 0x00   (engine)
+id.destinationAddress();  // 0xFF   (PDU2: broadcast)
+
+SpnValue rpm = decodeEngineSpeed(frame);
+rpm.available;            // true
+rpm.value;                // 1000.0 rpm  (0x1F40 × 0.125)
+```
+
+Every value above is checked by a unit test.
 
 ---
 
 ## Features
 
 - **J1939 identifier decoding**: priority, PDU format, source address from the 29-bit CAN ID.
+- **PGN calculation** following the PDU1 / PDU2 rule (the PDU Specific byte is a destination address when PF < 240), including the data page bit, plus the destination address (`0xFF` for broadcasts).
+- **SPN decoding**: engine speed (SPN 190) from little-endian data bytes with 0.125 rpm/bit resolution. "Not available" values are reported as such, never converted into a fake number.
 - **Hardware-independent CAN input** through the `ICanSource` interface. The same decoding code runs on a fake source (unit tests, CI) and, later, on a real SocketCAN bus.
 - **Unit-tested** with GoogleTest.
 - **Reproducible build** in a Docker container, so the toolchain is identical on every machine.
@@ -37,7 +59,7 @@ The goal is a small but **industrial-style** codebase: a reusable library, a har
 flowchart TB
     app["apps/j1939-monitor<br/>(application)"]
     subgraph lib["libj1939mon (library)"]
-        j1939["j1939/<br/>J1939Id"]
+        j1939["j1939/<br/>J1939Id · SPN decoding"]
         can["can/<br/>ICanSource (interface)"]
     end
     fake["FakeCanSource<br/>unit tests · CI"]
@@ -56,7 +78,8 @@ flowchart TB
 | `CanFrame` | One classic CAN frame: 29-bit ID, length, up to 8 data bytes. |
 | `ICanSource` | Interface: anything that can `read()` a `CanFrame`. |
 | `FakeCanSource` | Returns predefined frames, for tests and development. |
-| `J1939Id` | Immutable value class that decodes the fields of a J1939 identifier. |
+| `J1939Id` | Immutable value class that decodes the fields of a J1939 identifier, the PGN and the destination. |
+| `SpnValue`, `decodeEngineSpeed()` | Decodes a physical value from the data bytes and says whether it is available. |
 
 ---
 
@@ -115,7 +138,7 @@ j1939-monitor/
 ├── apps/j1939-monitor/      application entry point
 ├── include/j1939mon/        public headers (the library API)
 │   ├── can/                 CanFrame, ICanSource, FakeCanSource
-│   └── j1939/               J1939Id
+│   └── j1939/               J1939Id, SPN decoding
 ├── src/                     library implementation
 ├── tests/unit/              GoogleTest unit tests
 ├── docker/Dockerfile        pinned build environment
@@ -144,7 +167,9 @@ j1939-monitor/
 - [x] Dockerized build environment
 - [x] GitHub Actions CI
 - [x] `CanFrame`, `ICanSource` interface, `FakeCanSource`
-- [ ] PGN calculation (PDU1 / PDU2) and SPN decoding: engine speed, coolant temperature, vehicle speed, "not available" values
+- [x] PGN calculation (PDU1 / PDU2, data page) and destination address
+- [x] Engine speed SPN (190) with "not available" handling
+- [ ] More SPNs (coolant temperature, vehicle speed) and the full J1939 "error" / "not available" ranges
 - [ ] `SocketCanSource` on Linux SocketCAN (`vcan0`) with `epoll`, output comparable with `candump`
 - [ ] J1939 transport protocol (BAM reassembly with timeouts) and DM1 diagnostic messages
 
