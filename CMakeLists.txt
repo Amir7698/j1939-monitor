@@ -18,6 +18,7 @@ set(J1939MON_WARNINGS -Wall -Wextra -Wpedantic)
 # ---------------------------------------------------------------------------
 add_library(j1939mon
     src/j1939/j1939_id.cpp
+    src/j1939/spn.cpp
 )
 target_include_directories(j1939mon PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_compile_options(j1939mon PRIVATE ${J1939MON_WARNINGS})
@@ -38,6 +39,7 @@ if(BUILD_TESTING)
     find_package(GTest REQUIRED)
     add_executable(unit_tests
         tests/unit/test_j1939_id.cpp
+        tests/unit/test_spn.cpp
     )
     set_target_properties(unit_tests PROPERTIES CXX_STANDARD 14)
     target_link_libraries(unit_tests PRIVATE j1939mon GTest::gtest GTest::gtest_main)
