@@ -26,3 +26,10 @@ TEST(SpnTest, EngineSpeed_NotAvailable)
     SpnValue speed = decodeEngineSpeed(frame);
     EXPECT_FALSE(speed.available);
 }
+
+TEST(SpnTest, EngineSpeed_NotAvailableRange)
+{
+    CanFrame frame = {0x0CF00400, 8, {0xFF, 0xFF, 0xFF, 0x40, 0xFF, 0xFF, 0xFF, 0xFF}};
+    SpnValue speed = decodeEngineSpeed(frame);
+    EXPECT_FALSE(speed.available);
+}
