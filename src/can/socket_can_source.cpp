@@ -10,8 +10,6 @@ SocketCanSource::SocketCanSource(const char *interfaceName)
     : socket_(-1)
 {
 
-    socket_ = socket(AF_CAN, SOCK_RAW, CAN_RAW);
-
     sockaddr_can addr = {};
     addr.can_family = AF_CAN;
     addr.can_ifindex = if_nametoindex(interfaceName);
@@ -19,6 +17,8 @@ SocketCanSource::SocketCanSource(const char *interfaceName)
     {
         throw std::runtime_error("CAN interface not found");
     }
+
+    socket_ = socket(AF_CAN, SOCK_RAW, CAN_RAW);
 
     bind(socket_, (sockaddr *)&addr, sizeof(addr));
 }
@@ -29,7 +29,7 @@ SocketCanSource::~SocketCanSource()
     {
         close(socket_);
     }
-};
+}
 
 CanFrame SocketCanSource::read()
 {
