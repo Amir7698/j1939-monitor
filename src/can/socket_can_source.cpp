@@ -46,7 +46,7 @@ CanFrame SocketCanSource::read()
     can_frame raw = {};
 
     ::read(socket_, &raw, sizeof(raw));
-    frame.id = raw.can_id;
+    frame.id = raw.can_id & CAN_EFF_MASK;
     frame.len = raw.can_dlc;
     for (uint8_t i = 0; i < 8; i++)
     {
