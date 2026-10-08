@@ -10,7 +10,7 @@ public:
     SocketCanSource(const char *interfaceName);
     ~SocketCanSource();
 
-    CanFrame read() override;
+    bool read(CanFrame &frame) override;
 
 private:
     int socket_;

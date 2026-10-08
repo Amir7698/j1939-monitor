@@ -2,10 +2,23 @@
 #include "j1939mon/j1939/j1939_id.hpp"
 #include "j1939mon/can/socket_can_source.hpp"
 #include "j1939mon/j1939/spn.hpp"
+#include <csignal>
+
+volatile std::sig_atomic_t g_stop = 0;
+
+void onSignal(int)
+{
+    g_stop = 1;
+}
 
 void PrintOneFrame(ICanSource *source)
 {
-    CanFrame frame = source->read();
+    CanFrame frame = {};
+    if (!source->read(frame))
+    {
+        return;
+    }
+    std::cout << "raw id: 0x" << std::hex << frame.id << std::dec << std::endl;
     J1939Id id(frame.id);
     // std::cout << "Priority: " << id.priority() << std::endl;
     // std::cout << "SA:       " << id.sourceAddress() << std::endl;
@@ -30,11 +43,14 @@ void PrintOneFrame(ICanSource *source)
 
 int main()
 {
-
+    struct sigaction sa = {};
+    sa.sa_handler = onSignal;
+    sigaction(SIGINT, &sa, nullptr);
+    sigaction(SIGTERM, &sa, nullptr);
     try
     {
         SocketCanSource bus("vcan0");
-        while (true)
+        while (!g_stop)
         {
             PrintOneFrame(&bus);
         }
@@ -44,5 +60,6 @@ int main()
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
+
     return 0;
 }

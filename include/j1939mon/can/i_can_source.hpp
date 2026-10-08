@@ -6,7 +6,9 @@
 class ICanSource
 {
 public:
-    virtual CanFrame read() = 0;
+    // virtual CanFrame read() = 0;
+    virtual ~ICanSource() {}
+    virtual bool read(CanFrame &frame) = 0;
 };
 
 #endif

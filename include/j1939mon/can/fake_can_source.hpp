@@ -7,11 +7,12 @@ class FakeCanSource : public ICanSource
 {
 
 public:
-    CanFrame read() override
+    bool read(CanFrame &frame) override
     {
-        CanFrame frame = {0x0CF00400, 8, {0xFF, 0xFF, 0xFF, 0x40, 0x1F, 0xFF, 0xFF, 0xFF}};
-        return frame;
-    };
+        CanFrame fake = {0x0CF00400, 8, {0xFF, 0xFF, 0xFF, 0x40, 0x1F, 0xFF, 0xFF, 0xFF}};
+        frame = fake;
+        return true;
+    }
 };
 
 #endif

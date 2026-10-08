@@ -40,12 +40,16 @@ SocketCanSource::~SocketCanSource()
     }
 }
 
-CanFrame SocketCanSource::read()
+bool SocketCanSource::read(CanFrame &frame)
 {
-    CanFrame frame = {};
     can_frame raw = {};
 
-    ::read(socket_, &raw, sizeof(raw));
+    ssize_t n = ::read(socket_, &raw, sizeof(raw));
+    if (n != sizeof(raw))
+    {
+        return false;
+    }
+
     frame.id = raw.can_id & CAN_EFF_MASK;
     frame.len = raw.can_dlc;
     for (uint8_t i = 0; i < 8; i++)
@@ -53,5 +57,5 @@ CanFrame SocketCanSource::read()
         frame.data[i] = raw.data[i];
     }
 
-    return frame;
+    return true;
 }
