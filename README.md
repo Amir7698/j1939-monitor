@@ -30,7 +30,7 @@ Other PGNs are ignored. A "not available" value is shown as `N/A`, never as a fa
 
 The goal is a small but **industrial-style** codebase: a reusable library, a hardware-independent design, unit tests, a containerized build and a CI pipeline on every push.
 
-> 🚧 **Work in progress.** Reading from SocketCAN works with a simple blocking `read()`. Error handling, `epoll`, clean shutdown and the J1939 transport protocol are next. See the [roadmap](#roadmap).
+> 🚧 **Work in progress.** Reading from SocketCAN works with a blocking `read()`, setup errors are reported, and Ctrl+C / SIGTERM stop the monitor cleanly. `epoll` and the J1939 transport protocol are next. See the [roadmap](#roadmap).
 
 ### Library usage
 
@@ -63,6 +63,9 @@ Every value above is checked by a unit test.
 - **PGN calculation** following the PDU1 / PDU2 rule (the PDU Specific byte is a destination address when PF < 240), including the data page bit, plus the destination address (`0xFF` for broadcasts).
 - **SPN decoding**: engine speed (SPN 190, two little-endian bytes, 0.125 rpm/bit) and coolant temperature (SPN 110, one byte, 1 °C/bit, offset −40 °C). "Not available" values (`0xFF00`–`0xFFFF` for two bytes, `0xFF` for one byte) are reported as such, never converted into a fake number.
 - **Linux SocketCAN input**: `SocketCanSource` opens a raw CAN socket, binds it to an interface (`vcan0`, `can0`, ...) and reads frames. The file descriptor is owned with RAII: opened in the constructor, closed in the destructor.
+- **Error handling without leaks**: a missing interface, a failed `socket()` or a failed `bind()` throws from the constructor, which first releases anything it already opened; `main` prints the error to stderr and exits with code 1.
+- **Clean shutdown**: SIGINT and SIGTERM set a flag through `sigaction`, the read loop ends, the destructor closes the socket and the process exits with code 0.
+- **ECU simulator** in Python (`python-can`): a fake engine that sends engine speed every 100 ms, ramping 800 → 2000 rpm, and coolant temperature every second, warming up to 90 °C.
 - **Hardware-independent CAN input** through the `ICanSource` interface. The same decoding code runs on a fake source and on the real SocketCAN bus; switching from one to the other did not change the decoding code.
 - **Unit-tested** with GoogleTest.
 - **Reproducible build** in a Docker container, so the toolchain is identical on every machine.
@@ -143,15 +146,20 @@ cmake --build build
 
 ### Run on a virtual CAN bus
 
-Create `vcan0` (needs the `vcan` kernel module), start the monitor, and send frames from a second terminal with `cansend` (package `can-utils`):
+Create `vcan0` (needs the `vcan` kernel module), start the monitor, then start the ECU simulator in a second terminal:
 
 ```bash
-sudo modprobe -a can can-raw vcan
-sudo ip link add dev vcan0 type vcan
-sudo ip link set up vcan0
+./scripts/setup_vcan.sh                        # creates and brings up vcan0
+sudo apt install -y python3-can                # once, for the simulator
 
 ./build/j1939-monitor                          # terminal 1, stop with Ctrl+C
-cansend vcan0 0CF00400#FFFFFF401FFFFFFF        # terminal 2
+python3 tools/ecu_sim.py                       # terminal 2
+```
+
+Single frames can also be sent by hand with `cansend` (package `can-utils`):
+
+```bash
+cansend vcan0 0CF00400#FFFFFF401FFFFFFF
 ```
 
 ### Memory check
@@ -172,6 +180,8 @@ j1939-monitor/
 │   └── j1939/               J1939Id, SPN decoding
 ├── src/                     library implementation (can/, j1939/)
 ├── tests/unit/              GoogleTest unit tests
+├── tools/ecu_sim.py         Python fake engine ECU (python-can)
+├── scripts/setup_vcan.sh    creates the vcan0 interface
 ├── docker/Dockerfile        pinned build environment
 ├── .github/workflows/ci.yml CI pipeline
 └── CMakeLists.txt           target-based CMake build
@@ -203,7 +213,10 @@ j1939-monitor/
 - [x] Coolant temperature SPN (110) with resolution, offset and "not available"
 - [ ] Vehicle speed SPN and the J1939 "error indicator" ranges
 - [x] `SocketCanSource` on Linux SocketCAN (`vcan0`), blocking read loop printing engine speed and coolant temperature
-- [ ] Error handling for `socket()` / `bind()` / `read()`, `epoll` and clean shutdown on Ctrl+C / SIGTERM
+- [x] Error handling for `socket()` / `bind()` / missing interface, without leaking the socket
+- [x] Clean shutdown on Ctrl+C / SIGTERM
+- [x] Python ECU simulator (`tools/ecu_sim.py`) and `scripts/setup_vcan.sh`
+- [ ] `epoll` event loop, and pytest end-to-end tests driving the simulator
 - [ ] J1939 transport protocol (BAM reassembly with timeouts) and DM1 diagnostic messages
 
 ---
