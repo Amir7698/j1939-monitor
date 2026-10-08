@@ -1,61 +1,78 @@
 #!/usr/bin/env python3
-"""Fake engine ECU: sends J1939 EEC1 (engine speed) and ET1 (coolant) on a CAN bus.
+"""Fake engine ECU: sends J1939 engine speed and coolant temperature on vcan0.
 
-Usage: python3 tools/ecu_sim.py [--channel vcan0]
+Usage: python3 tools/ecu_sim.py
 Stop with Ctrl+C.
 """
-import argparse
+
 import time
 
 import can
 
-EEC1_ID = 0x0CF00400  # priority 3, PGN 61444, source address 0x00 (engine)
-ET1_ID = 0x18FEEE00   # priority 6, PGN 65262, source address 0x00 (engine)
-
 
 def eec1(rpm):
-    """Engine speed (SPN 190): bytes 4-5, little-endian, 0.125 rpm/bit. None = not available."""
-    raw = 0xFFFF if rpm is None else int(rpm / 0.125)
-    return bytes([0xFF, 0xFF, 0xFF, raw & 0xFF, raw >> 8, 0xFF, 0xFF, 0xFF])
+    raw = int(rpm / 0.125)
+    low = raw & 0xFF
+    high = raw >> 8
+    return [0xFF, 0xFF, 0xFF, low, high, 0xFF, 0xFF, 0xFF]
 
 
-def et1(celsius):
-    """Coolant temperature (SPN 110): byte 1, 1 degC/bit, offset -40. None = not available."""
-    raw = 0xFF if celsius is None else int(celsius + 40)
-    return bytes([raw, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
+def etc1(celsius):
+    raw = celsius + 40
+    return [raw, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--channel", default="vcan0")
-    args = parser.parse_args()
-
-    bus = can.interface.Bus(channel=args.channel, interface="socketcan")
-    print(f"ECU simulator on {args.channel}, Ctrl+C to stop")
-
-    rpm = 800.0
-    coolant = 20
-    tick = 0
-    try:
-        while True:
-            # Engine speed every 100 ms, ramping 800 -> 2000 rpm.
-            # Every 50th frame the sensor reports "not available".
-            value = None if tick % 50 == 49 else rpm
-            bus.send(can.Message(arbitration_id=EEC1_ID, data=eec1(value), is_extended_id=True))
-            rpm = 800.0 if rpm >= 2000 else rpm + 25
-
-            # Coolant temperature every second, warming up to 90 degC.
-            if tick % 10 == 0:
-                bus.send(can.Message(arbitration_id=ET1_ID, data=et1(coolant), is_extended_id=True))
-                coolant = min(coolant + 1, 90)
-
-            tick += 1
-            time.sleep(0.1)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        bus.shutdown()
+# STEP 1: open the bus (the Python version of socket + bind)
+#   bus = can.interface.Bus(channel="vcan0", interface="socketcan")
+bus = can.interface.Bus(channel="vcan0", interface="socketcan")
+print("Engine is connected!")
 
 
-if __name__ == "__main__":
-    main()
+rpm = 800
+coolant = 20
+tick = 0
+
+# STEP 2: send ONE engine frame (the same one you send with cansend)
+#   id 0x0CF00400, data FF FF FF 40 1F FF FF FF
+#   msg = can.Message(arbitration_id=..., data=[...], is_extended_id=True)
+#   bus.send(msg)
+
+
+# STEP 3: send it forever, every 100 ms
+#   while True:  ...  time.sleep(0.1)
+while True:
+    msg = can.Message(
+        arbitration_id=0x0CF00400,
+        data=eec1(rpm),
+        is_extended_id=True,
+    )
+    bus.send(msg)
+    if tick % 10 == 0:
+        msg = can.Message(
+            arbitration_id=0x18FEEE00, data=etc1(coolant), is_extended_id=True
+        )
+        bus.send(msg)
+        if coolant < 90:
+            coolant = coolant + 1
+    print("rpm", rpm)
+    rpm = rpm + 25
+    if rpm > 2000:
+        rpm = 800
+    tick += 1
+    time.sleep(0.1)
+
+
+# STEP 4: a function   def eec1(rpm):   that returns the 8 data bytes for any rpm
+#   raw = int(rpm / 0.125)
+#   low byte = raw & 0xFF, high byte = raw >> 8   (bytes 4 and 5, little-endian)
+#   then make rpm go up a little every loop
+
+
+# STEP 5: a function   def et1(celsius):   for the coolant frame (id 0x18FEEE00)
+#   byte 1 = celsius + 40, the other 7 bytes = 0xFF
+#   send it once per second
+
+
+# STEP 6: stop cleanly on Ctrl+C
+#   try: ... except KeyboardInterrupt: ... finally: bus.shutdown()
+bus.shutdown()
