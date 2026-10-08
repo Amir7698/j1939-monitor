@@ -1,6 +1,6 @@
 #include <iostream>
 #include "j1939mon/j1939/j1939_id.hpp"
-#include "j1939mon/can/fake_can_source.hpp"
+#include "j1939mon/can/socket_can_source.hpp"
 
 void PrintOneFrame(ICanSource *source)
 {
@@ -13,8 +13,13 @@ void PrintOneFrame(ICanSource *source)
 int main()
 {
 
-    FakeCanSource fake;
-    PrintOneFrame(&fake);
+    SocketCanSource bus("vcan0");
+    while (true)
+    {
+        PrintOneFrame(&bus);
+    }
+
+
 
     return 0;
 }

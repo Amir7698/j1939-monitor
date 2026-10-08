@@ -7,7 +7,7 @@
 class SocketCanSource : public ICanSource
 {
 public:
-    SocketCanSource(const char* interfaceName);
+    SocketCanSource(const char *interfaceName);
     ~SocketCanSource();
 
     CanFrame read() override;
