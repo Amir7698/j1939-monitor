@@ -31,11 +31,18 @@ void PrintOneFrame(ICanSource *source)
 int main()
 {
 
-    SocketCanSource bus("vcan0");
-    while (true)
+    try
     {
-        PrintOneFrame(&bus);
+        SocketCanSource bus("vcan0");
+        while (true)
+        {
+            PrintOneFrame(&bus);
+        }
     }
-
+    catch (const std::exception &e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
     return 0;
 }

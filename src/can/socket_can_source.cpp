@@ -1,4 +1,5 @@
 #include "j1939mon/can/socket_can_source.hpp"
+#include <stdexcept>
 #include <iostream>
 #include <sys/socket.h>
 #include <linux/can.h>
@@ -14,6 +15,10 @@ SocketCanSource::SocketCanSource(const char *interfaceName)
     sockaddr_can addr = {};
     addr.can_family = AF_CAN;
     addr.can_ifindex = if_nametoindex(interfaceName);
+    if (addr.can_ifindex == 0)
+    {
+        throw std::runtime_error("CAN interface not found");
+    }
 
     bind(socket_, (sockaddr *)&addr, sizeof(addr));
 }
