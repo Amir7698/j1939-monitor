@@ -8,16 +8,29 @@
 
 A **J1939 monitor for embedded Linux**, written in **C++11**.
 
-It reads CAN frames from heavy-duty vehicles (trucks, tractors, agricultural machines), decodes the J1939 identifier (priority, PGN, source and destination) and turns raw data bytes into physical values such as engine speed and coolant temperature. Current output of `./build/j1939-monitor` on a fake engine frame:
+It reads CAN frames from heavy-duty vehicles (trucks, tractors, agricultural machines) through Linux SocketCAN, decodes the J1939 identifier (priority, PGN, source and destination) and turns raw data bytes into physical values such as engine speed and coolant temperature.
+
+Running `./build/j1939-monitor` while frames are sent on `vcan0` with `cansend`:
 
 ```text
-Priority: 3
-SA:       0
+$ cansend vcan0 0CF00400#FFFFFF401FFFFFFF    # EEC1, engine speed 0x1F40
+$ cansend vcan0 0CF00400#FFFFFFFFFFFFFFFF    # EEC1, engine speed not available
+$ cansend vcan0 18FEEE00#82FFFFFFFFFFFFFF    # ET1, coolant 0x82
+$ cansend vcan0 18FEEE00#FFFFFFFFFFFFFFFF    # ET1, coolant not available
 ```
+
+```text
+rpm: 1000
+rpm: N/A
+coolant: 90 °C
+coolant: N/A
+```
+
+Other PGNs are ignored. A "not available" value is shown as `N/A`, never as a fake `0`.
 
 The goal is a small but **industrial-style** codebase: a reusable library, a hardware-independent design, unit tests, a containerized build and a CI pipeline on every push.
 
-> 🚧 **Work in progress.** The library decodes the identifier, the PGN, engine speed and coolant temperature; a real SocketCAN source is next. See the [roadmap](#roadmap).
+> 🚧 **Work in progress.** Reading from SocketCAN works with a simple blocking `read()`. Error handling, `epoll`, clean shutdown and the J1939 transport protocol are next. See the [roadmap](#roadmap).
 
 ### Library usage
 
@@ -49,7 +62,8 @@ Every value above is checked by a unit test.
 - **J1939 identifier decoding**: priority, PDU format, source address from the 29-bit CAN ID.
 - **PGN calculation** following the PDU1 / PDU2 rule (the PDU Specific byte is a destination address when PF < 240), including the data page bit, plus the destination address (`0xFF` for broadcasts).
 - **SPN decoding**: engine speed (SPN 190, two little-endian bytes, 0.125 rpm/bit) and coolant temperature (SPN 110, one byte, 1 °C/bit, offset −40 °C). "Not available" values (`0xFF00`–`0xFFFF` for two bytes, `0xFF` for one byte) are reported as such, never converted into a fake number.
-- **Hardware-independent CAN input** through the `ICanSource` interface. The same decoding code runs on a fake source (unit tests, CI) and, later, on a real SocketCAN bus.
+- **Linux SocketCAN input**: `SocketCanSource` opens a raw CAN socket, binds it to an interface (`vcan0`, `can0`, ...) and reads frames. The file descriptor is owned with RAII: opened in the constructor, closed in the destructor.
+- **Hardware-independent CAN input** through the `ICanSource` interface. The same decoding code runs on a fake source and on the real SocketCAN bus; switching from one to the other did not change the decoding code.
 - **Unit-tested** with GoogleTest.
 - **Reproducible build** in a Docker container, so the toolchain is identical on every machine.
 - **Continuous integration** with GitHub Actions: build and tests run on every push.
@@ -66,7 +80,7 @@ flowchart TB
         can["can/<br/>ICanSource (interface)"]
     end
     fake["FakeCanSource<br/>unit tests · CI"]
-    real["SocketCanSource<br/>real CAN / vcan0 (planned)"]
+    real["SocketCanSource<br/>Linux SocketCAN (vcan0, can0)"]
 
     app --> j1939
     app --> can
@@ -81,6 +95,7 @@ flowchart TB
 | `CanFrame` | One classic CAN frame: 29-bit ID, length, up to 8 data bytes. |
 | `ICanSource` | Interface: anything that can `read()` a `CanFrame`. |
 | `FakeCanSource` | Returns predefined frames, for tests and development. |
+| `SocketCanSource` | Reads real frames from a Linux SocketCAN interface and converts them to `CanFrame`. |
 | `J1939Id` | Immutable value class that decodes the fields of a J1939 identifier, the PGN and the destination. |
 | `SpnValue`, `decodeEngineSpeed()`, `decodeCoolantTemp()` | Decodes a physical value from the data bytes and says whether it is available. |
 
@@ -126,6 +141,19 @@ cmake --build build
 ./build/j1939-monitor     # run the application
 ```
 
+### Run on a virtual CAN bus
+
+Create `vcan0` (needs the `vcan` kernel module), start the monitor, and send frames from a second terminal with `cansend` (package `can-utils`):
+
+```bash
+sudo modprobe -a can can-raw vcan
+sudo ip link add dev vcan0 type vcan
+sudo ip link set up vcan0
+
+./build/j1939-monitor                          # terminal 1, stop with Ctrl+C
+cansend vcan0 0CF00400#FFFFFF401FFFFFFF        # terminal 2
+```
+
 ### Memory check
 
 ```bash
@@ -140,9 +168,9 @@ valgrind --leak-check=full ./build/j1939-monitor
 j1939-monitor/
 ├── apps/j1939-monitor/      application entry point
 ├── include/j1939mon/        public headers (the library API)
-│   ├── can/                 CanFrame, ICanSource, FakeCanSource
+│   ├── can/                 CanFrame, ICanSource, FakeCanSource, SocketCanSource
 │   └── j1939/               J1939Id, SPN decoding
-├── src/                     library implementation
+├── src/                     library implementation (can/, j1939/)
 ├── tests/unit/              GoogleTest unit tests
 ├── docker/Dockerfile        pinned build environment
 ├── .github/workflows/ci.yml CI pipeline
@@ -174,7 +202,8 @@ j1939-monitor/
 - [x] Engine speed SPN (190) with the full "not available" range (`0xFF00`–`0xFFFF`)
 - [x] Coolant temperature SPN (110) with resolution, offset and "not available"
 - [ ] Vehicle speed SPN and the J1939 "error indicator" ranges
-- [ ] `SocketCanSource` on Linux SocketCAN (`vcan0`) with `epoll`, output comparable with `candump`
+- [x] `SocketCanSource` on Linux SocketCAN (`vcan0`), blocking read loop printing engine speed and coolant temperature
+- [ ] Error handling for `socket()` / `bind()` / `read()`, `epoll` and clean shutdown on Ctrl+C / SIGTERM
 - [ ] J1939 transport protocol (BAM reassembly with timeouts) and DM1 diagnostic messages
 
 ---
