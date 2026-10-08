@@ -12,12 +12,19 @@ void PrintOneFrame(ICanSource *source)
     if (id.pgn() == 0xF004)
     {
         SpnValue rpm = decodeEngineSpeed(frame);
-        std::cout << "rpm: " << rpm.value << std::endl;
+        if (rpm.available)
+            std::cout << "rpm: " << rpm.value << std::endl;
+        else
+            std::cout << "rpm: N/A" << std::endl;
     }
     else if (id.pgn() == 0xFEEE)
     {
         SpnValue temp = decodeCoolantTemp(frame);
-        std::cout << "coolant: " << temp.value << " °C" << std::endl;
+
+        if (temp.available)
+            std::cout << "coolant: " << temp.value << " °C" << std::endl;
+        else
+            std::cout << "coolant: N/A" << std::endl;
     }
 }
 
