@@ -40,26 +40,33 @@ tick = 0
 
 # STEP 3: send it forever, every 100 ms
 #   while True:  ...  time.sleep(0.1)
-while True:
-    msg = can.Message(
-        arbitration_id=0x0CF00400,
-        data=eec1(rpm),
-        is_extended_id=True,
-    )
-    bus.send(msg)
-    if tick % 10 == 0:
+
+try:
+    while True:
         msg = can.Message(
-            arbitration_id=0x18FEEE00, data=etc1(coolant), is_extended_id=True
+            arbitration_id=0x0CF00400,
+            data=eec1(rpm),
+            is_extended_id=True,
         )
         bus.send(msg)
-        if coolant < 90:
-            coolant = coolant + 1
-    print("rpm", rpm)
-    rpm = rpm + 25
-    if rpm > 2000:
-        rpm = 800
-    tick += 1
-    time.sleep(0.1)
+        if tick % 10 == 0:
+            msg = can.Message(
+                arbitration_id=0x18FEEE00, data=etc1(coolant), is_extended_id=True
+            )
+            bus.send(msg)
+            if coolant < 90:
+                coolant = coolant + 1
+        print("rpm", rpm)
+        rpm = rpm + 25
+        if rpm > 2000:
+            rpm = 800
+        tick += 1
+        time.sleep(0.1)
+except KeyboardInterrupt:
+    print("engine stopped")
+
+finally:
+    bus.shutdown()
 
 
 # STEP 4: a function   def eec1(rpm):   that returns the 8 data bytes for any rpm
@@ -75,4 +82,3 @@ while True:
 
 # STEP 6: stop cleanly on Ctrl+C
 #   try: ... except KeyboardInterrupt: ... finally: bus.shutdown()
-bus.shutdown()
