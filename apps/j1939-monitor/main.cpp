@@ -1,13 +1,24 @@
 #include <iostream>
 #include "j1939mon/j1939/j1939_id.hpp"
 #include "j1939mon/can/socket_can_source.hpp"
+#include "j1939mon/j1939/spn.hpp"
 
 void PrintOneFrame(ICanSource *source)
 {
     CanFrame frame = source->read();
     J1939Id id(frame.id);
-    std::cout << "Priority: " << id.priority() << std::endl;
-    std::cout << "SA:       " << id.sourceAddress() << std::endl;
+    // std::cout << "Priority: " << id.priority() << std::endl;
+    // std::cout << "SA:       " << id.sourceAddress() << std::endl;
+    if (id.pgn() == 0xF004)
+    {
+        SpnValue rpm = decodeEngineSpeed(frame);
+        std::cout << "rpm: " << rpm.value << std::endl;
+    }
+    else if (id.pgn() == 0xFEEE)
+    {
+        SpnValue temp = decodeCoolantTemp(frame);
+        std::cout << "coolant: " << temp.value << " °C" << std::endl;
+    }
 }
 
 int main()
@@ -18,8 +29,6 @@ int main()
     {
         PrintOneFrame(&bus);
     }
-
-
 
     return 0;
 }
