@@ -19,8 +19,17 @@ SocketCanSource::SocketCanSource(const char *interfaceName)
     }
 
     socket_ = socket(AF_CAN, SOCK_RAW, CAN_RAW);
+    if (socket_ < 0)
+    {
+        throw std::runtime_error("cannot open CAN socket");
+    }
 
-    bind(socket_, (sockaddr *)&addr, sizeof(addr));
+    int r = bind(socket_, (sockaddr *)&addr, sizeof(addr));
+    if (r < 0)
+    {
+        close(socket_);
+        throw std::runtime_error("cannot bind CAN socket");
+    }
 }
 
 SocketCanSource::~SocketCanSource()
