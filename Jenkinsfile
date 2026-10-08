@@ -2,8 +2,9 @@ pipeline {
     agent any
     stages {
         stage('Build') {
-            steps { 
-                sh 'cmake -S . -B build-jenkins -G Ninja'              
+            steps {
+                sh 'rm -rf build-jenkins'
+                sh 'cmake -S . -B build-jenkins -G Ninja'
                 sh 'cmake --build build-jenkins'
             }
         }
