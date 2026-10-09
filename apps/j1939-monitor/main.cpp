@@ -2,6 +2,7 @@
 #include "j1939mon/j1939/j1939_id.hpp"
 #include "j1939mon/can/socket_can_source.hpp"
 #include "j1939mon/j1939/spn.hpp"
+#include "j1939mon/j1939/dm1.hpp"
 #include <csignal>
 
 volatile std::sig_atomic_t g_stop = 0;
@@ -38,6 +39,25 @@ void PrintOneFrame(ICanSource *source)
             std::cout << "coolant: " << temp.value << " °C" << std::endl;
         else
             std::cout << "coolant: N/A" << std::endl;
+    }
+    else if (id.pgn() == 0xFECA)
+    {
+        Dm1 dm1 = decodeDm1(frame);
+        if (dm1.hasDtc)
+        {
+            std::cout << "DM1: SPN " << dm1.dtc.spn
+                      << " FMI " << int(dm1.dtc.fmi)
+                      << " OC " << int(dm1.dtc.oc);
+            if (dm1.redStopLamp)
+                std::cout << " [red]";
+            if (dm1.amberWarningLamp)
+                std::cout << " [amber]";
+            if (dm1.malfunctionLamp)
+                std::cout << " [MIL]";
+            std::cout << std::endl;
+        }
+        else
+            std::cout << "DM1: no active faults" << std::endl;
     }
 }
 
