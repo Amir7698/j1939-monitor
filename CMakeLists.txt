@@ -21,6 +21,7 @@ add_library(j1939mon
     src/j1939/spn.cpp
     src/can/socket_can_source.cpp
     src/j1939/dm1.cpp
+    src/j1939/bam.cpp
 )
 target_include_directories(j1939mon PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_compile_options(j1939mon PRIVATE ${J1939MON_WARNINGS})
@@ -43,6 +44,7 @@ if(BUILD_TESTING)
         tests/unit/test_j1939_id.cpp
         tests/unit/test_spn.cpp
         tests/unit/test_dm1.cpp
+        tests/unit/test_bam.cpp
     )
     set_target_properties(unit_tests PROPERTIES CXX_STANDARD 14)
     target_link_libraries(unit_tests PRIVATE j1939mon GTest::gtest GTest::gtest_main)
