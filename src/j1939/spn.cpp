@@ -5,7 +5,7 @@ SpnValue decodeEngineSpeed(CanFrame frame)
 
     SpnValue result;
     uint32_t raw = frame.data[3] | (frame.data[4] << 8); // little-endian: low byte first
-    if (raw >= 0xFF00)
+    if (raw > 0xFAFF)
     {
         result.available = false; // all ones: not available
         result.value = 0.0;
@@ -21,7 +21,7 @@ SpnValue decodeCoolantTemp(CanFrame frame)
 
     SpnValue result;
     uint32_t raw = frame.data[0];
-    if (raw >= 0xFF)
+    if (raw > 0xFA)
     {
         result.available = false;
         result.value = 0;

@@ -45,6 +45,34 @@ TEST(SpnTest, CoolantTemp_90C)
 TEST(SpnTest, CoolantTemp_NotAvailable)
 {
     CanFrame frame = {0x18FEEE00, 8, {0XFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
-    SpnValue temp= decodeCoolantTemp(frame);
+    SpnValue temp = decodeCoolantTemp(frame);
+    EXPECT_FALSE(temp.available);
+}
+
+TEST(SpnTest, EngineSpeed_Reserved)
+{
+    CanFrame frame = {0x0CF00400, 8, {0XFF, 0xFF, 0xFF, 0x00, 0xFB, 0xFF, 0xFF, 0xFF}};
+    SpnValue speed = decodeEngineSpeed(frame);
+    EXPECT_FALSE(speed.available);
+}
+
+TEST(SpnTest, EngineSpeed_Error)
+{
+    CanFrame frame = {0x0CF00400, 8, {0xFF, 0xFF, 0xFF, 0x00, 0xFE, 0xFF, 0xFF, 0xFF}};
+    SpnValue speed = decodeEngineSpeed(frame);
+    EXPECT_FALSE(speed.available);
+}
+
+TEST(SpnTest, CoolantTemp_Reserved)
+{
+    CanFrame frame = {0x18FEEE00, 8, {0xFB, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
+    SpnValue temp = decodeCoolantTemp(frame);
+    EXPECT_FALSE(temp.available);
+}
+
+TEST(SpnTest, CoolantTemp_Error)
+{
+    CanFrame frame = {0x18FEEE00, 8, {0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}};
+    SpnValue temp = decodeCoolantTemp(frame);
     EXPECT_FALSE(temp.available);
 }
