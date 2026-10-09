@@ -7,7 +7,7 @@ SpnValue decodeEngineSpeed(CanFrame frame)
     uint32_t raw = frame.data[3] | (frame.data[4] << 8); // little-endian: low byte first
     if (raw > 0xFAFF)
     {
-        result.available = false; // all ones: not available
+        result.available = false; // reserved, error or not available
         result.value = 0.0;
         return result;
     }

@@ -18,7 +18,7 @@ void PrintOneFrame(ICanSource *source)
     {
         return;
     }
-    std::cout << "raw id: 0x" << std::hex << frame.id << std::dec << std::endl;
+    // std::cout << "raw id: 0x" << std::hex << frame.id << std::dec << std::endl;
     J1939Id id(frame.id);
     // std::cout << "Priority: " << id.priority() << std::endl;
     // std::cout << "SA:       " << id.sourceAddress() << std::endl;
