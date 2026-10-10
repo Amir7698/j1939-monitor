@@ -20,6 +20,13 @@ struct Dm1
     Dtc dtc;
 };
 
+// Decodes one DTC from 4 bytes.
+Dtc decodeDtc(const uint8_t *bytes);
+
+// Decodes lamps + first DTC from a DM1 payload (single frame or BAM).
+Dm1 decodeDm1(const uint8_t *payload);
+
+// Single-frame shortcut: decodes frame.data.
 Dm1 decodeDm1(CanFrame frame);
 
 #endif

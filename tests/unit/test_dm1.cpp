@@ -40,3 +40,14 @@ TEST(Dm1Test, SpnHighBits)
     EXPECT_EQ(dm1.dtc.fmi, 3);
     EXPECT_EQ(dm1.dtc.oc, 5);
 }
+
+TEST(Dm1Test, DtcFromBytes)
+{
+    const uint8_t bytes[4] = {0x64, 0x00, 0x01, 0x02};
+
+    Dtc dtc = decodeDtc(bytes);
+
+    EXPECT_EQ(dtc.spn, 100u);
+    EXPECT_EQ(dtc.fmi, 1);
+    EXPECT_EQ(dtc.oc, 2);
+}
