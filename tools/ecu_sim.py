@@ -36,52 +36,56 @@ def dm1_bam():
     return cm, dt1, dt2
 
 
-bus = can.interface.Bus(channel="vcan0", interface="socketcan")
-print("Engine is connected!")
+def main():
+    bus = can.interface.Bus(channel="vcan0", interface="socketcan")
+
+    print("Engine is connected!")
 
 
-rpm = 800
-coolant = 80
-tick = 0
+    rpm = 800
+    coolant = 80
+    tick = 0
 
 
-try:
-    while True:
-        msg = can.Message(
-            arbitration_id=0x0CF00400,
-            data=eec1(rpm),
-            is_extended_id=True,
-        )
-        bus.send(msg)
-        if tick % 10 == 0:
+    try:
+        while True:
             msg = can.Message(
-                arbitration_id=0x18FEEE00, data=et1(coolant), is_extended_id=True
+                arbitration_id=0x0CF00400,
+                data=eec1(rpm),
+                is_extended_id=True,
             )
             bus.send(msg)
-            if coolant >= 90:
+            if tick % 10 == 0:
+                msg = can.Message(
+                    arbitration_id=0x18FEEE00, data=et1(coolant), is_extended_id=True
+                )
+                bus.send(msg)
+                if coolant >= 90:
                     cm, dt1, dt2 = dm1_bam()
                     bus.send(can.Message(arbitration_id=0x1CECFF00, data=cm, is_extended_id=True))
                     time.sleep(0.05)
                     bus.send(can.Message(arbitration_id=0x1CEBFF00, data=dt1, is_extended_id=True))
                     time.sleep(0.05)
                     bus.send(can.Message(arbitration_id=0x1CEBFF00, data=dt2, is_extended_id=True))
-            else:
-                msg = can.Message(
-                    arbitration_id=0x18FECA00,
-                    data=dm1(False),
-                    is_extended_id=True,
-                )
-                bus.send(msg)
-            if coolant < 90:
-                coolant = coolant + 1
-        print("rpm", rpm)
-        rpm = rpm + 25
-        if rpm > 2000:
-            rpm = 800
-        tick += 1
-        time.sleep(0.1)
-except KeyboardInterrupt:
-    print("engine stopped")
+                else:
+                    msg = can.Message(
+                        arbitration_id=0x18FECA00,
+                        data=dm1(False),
+                        is_extended_id=True,
+                    )
+                    bus.send(msg)
+                if coolant < 90:
+                    coolant = coolant + 1
+            print("rpm", rpm)
+            rpm = rpm + 25
+            if rpm > 2000:
+                rpm = 800
+            tick += 1
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        print("engine stopped")
 
-finally:
-    bus.shutdown()
+    finally:
+        bus.shutdown()
+if __name__ == "__main__":
+    main()
