@@ -15,6 +15,16 @@ void BamReassembler::reset()
     size_ = 0;
 }
 
+bool BamReassembler::checkTimeout(uint32_t nowMs)
+{
+    if (active_ && (nowMs - lastMs_) > kTimeoutMs)
+    {
+        reset();
+        return true;
+    }
+    return false;
+}
+
 bool BamReassembler::onFrame(const CanFrame &frame, uint32_t nowMs)
 {
     J1939Id id(frame.id);
@@ -24,10 +34,7 @@ bool BamReassembler::onFrame(const CanFrame &frame, uint32_t nowMs)
     }
 
     // 1. Too long since the last box? Throw the half-built message away.
-    if (active_ && (nowMs - lastMs_) > kTimeoutMs)
-    {
-        reset();
-    }
+    checkTimeout(nowMs);
 
     // 2. The letter: start a new transfer (drops any unfinished one).
     if (id.pduFormat() == kTpCm && frame.data[0] == kBamControl)

@@ -15,6 +15,9 @@ public:
     // Feed every frame with the current time in ms.
     // Returns true when a complete message is ready in pgn() / data().
     bool onFrame(const CanFrame &frame, uint32_t nowMs);
+    bool checkTimeout(uint32_t nowMs);
+
+    bool inProgress() const { return active_; }
 
     uint32_t pgn() const { return pgn_; }
     const uint8_t *data() const { return data_; }
@@ -28,10 +31,10 @@ private:
     uint16_t totalSize_ = 0;   // bytes announced in TP.CM
     uint8_t totalPackets_ = 0; // boxes announced in TP.CM
     uint16_t size_ = 0;        // bytes collected so far
-    uint8_t nextSeq_ = 1; // the box number we expect next
-    uint32_t lastMs_ = 0; // when the last frame arrived
+    uint8_t nextSeq_ = 1;      // the box number we expect next
+    uint32_t lastMs_ = 0;      // when the last frame arrived
     uint8_t data_[kBamMaxSize];
-    uint8_t sa_;               // the only sender we listen to
+    uint8_t sa_; // the only sender we listen to
 };
 
 #endif

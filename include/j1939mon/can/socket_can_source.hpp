@@ -14,6 +14,7 @@ public:
 
 private:
     int socket_;
+    int epoll_; // watches socket_ so read() can give up after a timeout
 };
 
 #endif

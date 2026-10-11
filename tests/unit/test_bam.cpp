@@ -65,8 +65,8 @@ TEST(BamTest, DuplicatePacket)
     BamReassembler bam(0x00);
 
     EXPECT_FALSE(bam.onFrame(kCm, 0));
-    EXPECT_FALSE(bam.onFrame(kDt1, 50)); // packet 1
-    EXPECT_FALSE(bam.onFrame(kDt1, 60)); // duplicate packet 1
+    EXPECT_FALSE(bam.onFrame(kDt1, 50));  // packet 1
+    EXPECT_FALSE(bam.onFrame(kDt1, 60));  // duplicate packet 1
     EXPECT_FALSE(bam.onFrame(kDt2, 100)); // transfer was dropped: nothing to complete
 }
 
@@ -83,4 +83,19 @@ TEST(BamTest, OtherSenderIgnored)
     EXPECT_TRUE(bam.onFrame(kDt2, 100));     // correct sender completes transfer
 
     EXPECT_EQ(bam.size(), 10u);
+}
+
+TEST(BamTest, CheckTimeoutWithoutFrames)
+{
+    BamReassembler bam(0x00);
+
+    bam.onFrame(kCm, 0);
+    bam.onFrame(kDt1, 50);
+    EXPECT_TRUE(bam.inProgress());
+
+    EXPECT_FALSE(bam.checkTimeout(500)); // 450 ms since box 1: still fine
+    EXPECT_TRUE(bam.inProgress());
+
+    EXPECT_TRUE(bam.checkTimeout(900)); // 850 ms > 750 ms: dropped
+    EXPECT_FALSE(bam.inProgress());
 }

@@ -108,6 +108,12 @@ int main()
         while (!g_stop)
         {
             PrintOneFrame(&bus, bams);
+            uint32_t now = nowMs();
+            for (auto &entry : bams)
+            {
+                if (entry.second.checkTimeout(now))
+                    std::cout << "BAM timeout from SA " << int(entry.first) << std::endl;
+            }
         }
     }
     catch (const std::exception &e)
