@@ -300,30 +300,12 @@ The four main decisions (time as an input, one BAM session per sender, `epoll`, 
 
 ---
 
-## Roadmap
+## Next steps
 
-- [x] J1939 identifier decoding (`J1939Id`)
-- [x] Library / application / tests split with CMake
-- [x] Unit tests with GoogleTest
-- [x] Dockerized build environment
-- [x] GitHub Actions CI
-- [x] `CanFrame`, `ICanSource` interface, `FakeCanSource`
-- [x] PGN calculation (PDU1 / PDU2, data page) and destination address
-- [x] Engine speed SPN (190) and coolant temperature SPN (110), valid range only (reserved / error / not available rejected)
-- [x] `SocketCanSource` on Linux SocketCAN (`vcan0`)
-- [x] Error handling for `socket()` / `bind()` / missing interface, without leaking descriptors
-- [x] Clean shutdown on Ctrl+C / SIGTERM
-- [x] Python ECU simulator (`tools/ecu_sim.py`) and `scripts/setup_vcan.sh`
-- [x] DM1 diagnostic messages: lamps and DTCs, single frame and multi-packet
-- [x] J1939 transport protocol: BAM reassembly with sequence, size, length and per-sender checks
-- [x] `epoll` loop with a 100 ms timeout, so BAM timeouts fire on a silent bus
-- [x] pytest unit tests for the simulator, run in CI
-- [x] Local Jenkins pipeline
-- [x] AddressSanitizer and UndefinedBehaviorSanitizer builds in CI
-- [ ] End-to-end test: run the monitor and the simulator together on `vcan0` and check the output
-- [ ] Interface name as a command-line argument
-- [ ] Vehicle speed SPN and separate reporting of the error indicator
-- [ ] RTS/CTS (connection mode) transport protocol
+- End-to-end test: run the monitor and the simulator together on `vcan0` and check the output
+- Interface name as a command-line argument
+- Vehicle speed SPN, and separate reporting of the error indicator
+- RTS/CTS (connection mode) transport protocol
 
 ---
 
