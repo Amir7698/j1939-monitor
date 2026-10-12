@@ -266,6 +266,7 @@ j1939-monitor/
 ├── docker/jenkins/          Jenkins image and job definition
 ├── .github/workflows/ci.yml CI pipeline (C++, sanitizers, Python)
 ├── Jenkinsfile              Jenkins pipeline (Build, Test)
+├── DESIGN.md                design decisions and alternatives
 ├── pytest.ini               pytest settings
 └── CMakeLists.txt           target-based CMake build
 ```
@@ -273,6 +274,8 @@ j1939-monitor/
 ---
 
 ## Engineering choices
+
+The four main decisions (time as an input, one BAM session per sender, `epoll`, fixed-size buffer) are explained with their alternatives in [DESIGN.md](DESIGN.md).
 
 - **C++11 as the minimum standard**, so the library also builds with older embedded toolchains. The unit-test executable uses C++14 only because GoogleTest ≥ 1.13 requires it.
 - **Fixed-width types** (`uint8_t`, `uint32_t`) for all bus data: exact sizes, no sign issues in bit operations.
