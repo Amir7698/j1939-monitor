@@ -99,3 +99,41 @@ TEST(BamTest, CheckTimeoutWithoutFrames)
     EXPECT_TRUE(bam.checkTimeout(900)); // 850 ms > 750 ms: dropped
     EXPECT_FALSE(bam.inProgress());
 }
+
+TEST(BamTest, InconsistentPacketCount)
+{
+    BamReassembler bam(0x00);
+    CanFrame badCm = kCm;
+    badCm.data[3] = 3; // 10 bytes need 2 packets, not 3
+
+    EXPECT_FALSE(bam.onFrame(badCm, 0));
+    EXPECT_FALSE(bam.inProgress()); // announcement rejected
+    EXPECT_FALSE(bam.onFrame(kDt1, 50));
+}
+
+TEST(BamTest, SizeTooBig)
+{
+    BamReassembler bam(0x00);
+    CanFrame bigCm = kCm;
+    bigCm.data[1] = 0xFA; // 0x06FA = 1786 bytes, one more than the BAM maximum
+    bigCm.data[2] = 0x06;
+    bigCm.data[3] = 0xFF;
+
+    EXPECT_FALSE(bam.onFrame(bigCm, 0));
+    EXPECT_FALSE(bam.inProgress());
+}
+
+TEST(BamTest, NewAnnouncementRestartsTransfer)
+{
+    BamReassembler bam(0x00);
+
+    EXPECT_FALSE(bam.onFrame(kCm, 0));
+    EXPECT_FALSE(bam.onFrame(kDt1, 50));
+    EXPECT_FALSE(bam.onFrame(kCm, 100)); // new TP.CM: the old transfer is dropped
+    EXPECT_FALSE(bam.onFrame(kDt2, 150)); // box 2 no longer fits: we expect box 1 again
+
+    EXPECT_FALSE(bam.onFrame(kCm, 200)); // a clean transfer completes normally
+    EXPECT_FALSE(bam.onFrame(kDt1, 250));
+    EXPECT_TRUE(bam.onFrame(kDt2, 300));
+    EXPECT_EQ(bam.size(), 10u);
+}

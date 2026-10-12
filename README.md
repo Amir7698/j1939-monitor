@@ -85,8 +85,7 @@ Every value above is checked by a unit test.
 
 ### Transport protocol (BAM, J1939-21)
 - **Reassembly** of broadcast multi-packet messages: one TP.CM announcement (PGN `0xEC00`, control byte 32) followed by numbered TP.DT packets (PGN `0xEB00`, 7 payload bytes each); the `0xFF` padding of the last packet is not copied.
-- **Failure paths with unit tests**: missing packet, repeated packet, T1 timeout (750 ms between packets, with and without further traffic), announced size below 9 bytes, frame shorter than 8 bytes, packet from another sender.
-- **Also rejected** (handled in code, no dedicated test yet): announcement whose packet count does not match the size, size above 1785 bytes, a new announcement in the middle of a transfer (the old one is dropped).
+- **Failure paths, each with a unit test**: missing packet, repeated packet, T1 timeout (750 ms between packets, with and without further traffic), announced size outside 9–1785 bytes, packet count that does not match the size, frame shorter than 8 bytes, packet from another sender, and a new announcement in the middle of a transfer (the old one is dropped, the new one completes normally).
 - **One session per sender**: each `BamReassembler` follows a single source address and ignores packets from other ECUs, so two ECUs sending BAM at the same time cannot corrupt each other. The monitor keeps one reassembler per source address it has heard.
 - **Fixed-size buffer** (1785 bytes, the BAM maximum): receiving a transfer never allocates memory.
 - **Testable timeouts**: the current time is passed in as a parameter instead of being read inside the class, so tests can move the clock without sleeping.
@@ -101,7 +100,7 @@ Every value above is checked by a unit test.
 ### Tooling
 - **Hardware-independent CAN input** through the `ICanSource` interface: the same decoding code runs on a fake source and on the real bus. Adding `epoll` changed only `SocketCanSource`; the interface and the decoders stayed the same.
 - **ECU simulator** in Python (`python-can`): engine speed every 100 ms (800 → 2000 rpm ramp), coolant temperature every second (warming from 80 to 90 °C), and DM1 every second: "no active faults" as a single frame, then two DTCs over BAM once the engine reaches 90 °C.
-- **Tests**: 31 GoogleTest unit tests for the C++ library and 5 pytest unit tests for the simulator's frame builders.
+- **Tests**: 34 GoogleTest unit tests for the C++ library and 5 pytest unit tests for the simulator's frame builders.
 - **Reproducible build** in a Docker container, so the toolchain is identical on every machine.
 - **CI with GitHub Actions**: two jobs on every push, C++ build and tests in Docker, and Python tests.
 - **Local Jenkins pipeline** (`Jenkinsfile`, Build and Test stages with JUnit test reports), runnable in Docker with `scripts/jenkins.sh`.
