@@ -8,6 +8,8 @@
 
 A **J1939 monitor for embedded Linux**, written in **C++11**.
 
+![Demo: the simulated engine overheats and two DM1 faults arrive over BAM; then a BAM announcement with no data is dropped after the T1 timeout](docs/demo.gif)
+
 It listens to a CAN bus through Linux SocketCAN, decodes the J1939 identifier (priority, PGN, source and destination), turns raw data bytes into physical values (engine speed, coolant temperature), reassembles multi-packet messages sent with the J1939 transport protocol (BAM), and shows active diagnostic trouble codes (DM1) from the engine ECU.
 
 A Python ECU simulator drives the whole chain on a virtual CAN bus. When the simulated engine overheats it reports **two faults at once**, which do not fit in one 8-byte CAN frame, so they travel as a BAM transfer and are reassembled by the monitor:
@@ -262,6 +264,7 @@ j1939-monitor/
 ├── tools/ecu_sim.py         Python fake engine ECU (python-can)
 ├── scripts/setup_vcan.sh    creates the vcan0 interface
 ├── scripts/jenkins.sh       starts a local Jenkins in Docker
+├── docs/demo.tape           VHS script that records docs/demo.gif
 ├── docker/Dockerfile        pinned build environment
 ├── docker/jenkins/          Jenkins image and job definition
 ├── .github/workflows/ci.yml CI pipeline (C++, sanitizers, Python)
