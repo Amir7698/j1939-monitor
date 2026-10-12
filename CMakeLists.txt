@@ -12,7 +12,11 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(J1939MON_WARNINGS -Wall -Wextra -Wpedantic)
-
+option(J1939MON_SANITIZE "Build with ASan and UBSan" OFF)
+if(J1939MON_SANITIZE)
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all)
+    add_link_options(-fsanitize=address,undefined)
+endif()
 # ---------------------------------------------------------------------------
 # Library: all reusable code. Add every new src/*.cpp file here.
 # ---------------------------------------------------------------------------

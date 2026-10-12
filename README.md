@@ -102,7 +102,7 @@ Every value above is checked by a unit test.
 - **ECU simulator** in Python (`python-can`): engine speed every 100 ms (800 → 2000 rpm ramp), coolant temperature every second (warming from 80 to 90 °C), and DM1 every second: "no active faults" as a single frame, then two DTCs over BAM once the engine reaches 90 °C.
 - **Tests**: 34 GoogleTest unit tests for the C++ library and 5 pytest unit tests for the simulator's frame builders.
 - **Reproducible build** in a Docker container, so the toolchain is identical on every machine.
-- **CI with GitHub Actions**: two jobs on every push, C++ build and tests in Docker, and Python tests.
+- **CI with GitHub Actions**: three jobs on every push: C++ build and tests in Docker, the same tests under AddressSanitizer + UndefinedBehaviorSanitizer, and Python tests.
 - **Local Jenkins pipeline** (`Jenkinsfile`, Build and Test stages with JUnit test reports), runnable in Docker with `scripts/jenkins.sh`.
 
 ---
@@ -228,7 +228,19 @@ cansend vcan0 1CECFF00#200A0002FFCAFE00        # TP.CM alone: "BAM timeout" afte
 ./scripts/jenkins.sh      # Jenkins on http://localhost:8080 with a job that runs the Jenkinsfile
 ```
 
-### Memory check
+### Memory and undefined-behavior checks
+
+The unit tests also run under AddressSanitizer and UndefinedBehaviorSanitizer (in a separate build directory, because sanitized code is slower):
+
+```bash
+cmake -S . -B build-asan -G Ninja -DJ1939MON_SANITIZE=ON
+cmake --build build-asan
+./build-asan/unit_tests
+```
+
+The setup was checked by injecting two bugs on purpose: a missing `return` in a `bool` function (reported by UBSan) and a 4-byte read from a 2-byte array (reported by ASan as a stack-buffer-overflow, with file and line).
+
+The application itself can be checked with Valgrind:
 
 ```bash
 valgrind --leak-check=full ./build/j1939-monitor
@@ -252,7 +264,7 @@ j1939-monitor/
 ├── scripts/jenkins.sh       starts a local Jenkins in Docker
 ├── docker/Dockerfile        pinned build environment
 ├── docker/jenkins/          Jenkins image and job definition
-├── .github/workflows/ci.yml CI pipeline (C++ job + Python job)
+├── .github/workflows/ci.yml CI pipeline (C++, sanitizers, Python)
 ├── Jenkinsfile              Jenkins pipeline (Build, Test)
 ├── pytest.ini               pytest settings
 └── CMakeLists.txt           target-based CMake build
@@ -269,7 +281,7 @@ j1939-monitor/
 - **Time is an input**: `BamReassembler` never reads the clock itself; the caller passes the time in milliseconds. Timeouts are tested by moving that number, not by sleeping.
 - **Strict BAM receiver**: any packet out of sequence drops the whole transfer instead of guessing; the next TP.CM starts a clean one.
 - **Interfaces only where there are real alternatives** (fake vs. real CAN), not everywhere.
-- **Warnings on**: `-Wall -Wextra -Wpedantic`.
+- **Warnings on**: `-Wall -Wextra -Wpedantic`, plus an optional sanitizer build (`-DJ1939MON_SANITIZE=ON`) that CI runs on every push.
 
 ## Known limitations
 
@@ -300,7 +312,7 @@ j1939-monitor/
 - [x] `epoll` loop with a 100 ms timeout, so BAM timeouts fire on a silent bus
 - [x] pytest unit tests for the simulator, run in CI
 - [x] Local Jenkins pipeline
-- [ ] AddressSanitizer and UndefinedBehaviorSanitizer builds in CI
+- [x] AddressSanitizer and UndefinedBehaviorSanitizer builds in CI
 - [ ] End-to-end test: run the monitor and the simulator together on `vcan0` and check the output
 - [ ] Interface name as a command-line argument
 - [ ] Vehicle speed SPN and separate reporting of the error indicator

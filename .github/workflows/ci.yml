@@ -28,3 +28,14 @@ jobs:
 
       - name: Run simulator tests
         run: python -m pytest -v
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t j1939-build docker/
+
+      - name: Unit tests with ASan + UBSan
+        run: docker run --rm --cap-add SYS_PTRACE -v "$PWD":/src j1939-build bash -c "cmake -S . -B build-asan -G Ninja -DJ1939MON_SANITIZE=ON && cmake --build build-asan && ./build-asan/unit_tests"

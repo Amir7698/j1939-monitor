@@ -3,3 +3,5 @@ j1939id
 build/
 build-docker/
 __pycache__/
+build-asan/
+.pytest_cache/
