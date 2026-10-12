@@ -5,6 +5,7 @@
 ![CMake](https://img.shields.io/badge/build-CMake%20%2B%20Ninja-informational)
 ![GoogleTest](https://img.shields.io/badge/tests-GoogleTest%20%2B%20pytest-success)
 ![Docker](https://img.shields.io/badge/env-Docker-2496ED)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A **J1939 monitor for embedded Linux**, written in **C++11**.
 
@@ -330,3 +331,7 @@ The four main decisions (time as an input, one BAM session per sender, `epoll`, 
 
 **Amirhossein Mohtashami**, M.Sc. Electronic Engineering, Politecnico di Torino.
 Embedded firmware engineer interested in embedded Linux, CAN-based systems and test automation.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
